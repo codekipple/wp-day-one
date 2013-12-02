@@ -1,5 +1,6 @@
 .rsync-cache
 .sass-cache
 ._*
+.DS_Store
 web/content/uploads/*
 !web/content/uploads/.gitkeep

@@ -1,0 +1,20 @@
+{
+  "name": "wordpress-project",
+  "version": "1.0.0",
+  "authors": [
+    "codekipple <ralcus.com@gmail.com>"
+  ],
+  "description": "A wordpress website",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "web/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "inuit.css": "5.0.0",
+    "jquery": "1.10.2"
+  }
+}
