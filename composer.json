@@ -1,0 +1,10 @@
+{
+    "name": "codekipple/wordpress-site",
+    "description": "WordPress Project",
+    "authors": [
+        {
+            "name": "codekipple",
+            "email": "ralcus.com@gmail.com"
+        }
+    ]
+}
