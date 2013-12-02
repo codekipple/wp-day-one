@@ -1,0 +1,5 @@
+.rsync-cache
+.sass-cache
+._*
+web/content/uploads/*
+!web/content/uploads/.gitkeep
