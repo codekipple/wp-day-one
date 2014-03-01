@@ -2,7 +2,7 @@
   "name": "wordpress-project",
   "version": "1.0.0",
   "authors": [
-    "codekipple <ralcus.com@gmail.com>"
+    "@codekipple "
   ],
   "description": "A wordpress website",
   "private": true,
@@ -14,7 +14,6 @@
     "tests"
   ],
   "dependencies": {
-    "inuit.css": "5.0.0",
     "jquery": "1.10.2"
   }
 }
