@@ -1,0 +1,12 @@
+{% macro menu_links(posts) %}
+    {% for post in posts %}
+        <li>
+            <a href="{{ post.link }}">{{ post.title }}</a>
+            {% if post.sublinks %}
+                <ul>
+                    {{ _self.menu_links(post.sublinks) }}
+                </ul>
+            {% endif %}
+        </li>
+    {% endfor %}
+{% endmacro %}

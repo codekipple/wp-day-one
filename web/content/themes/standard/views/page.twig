@@ -1,0 +1,17 @@
+{% extends "base.twig" %}
+
+{% block content %}
+	<div class="grid grid--page">
+		<div class="grid__cell large-three-fifths larger-seven-tenths">
+			<h1>{{post.title}}</h1>
+			{{post.content}}
+		</div><!--
+		--><div class="grid__cell large-two-fifths larger-three-tenths">
+		    {% if sidebar %}
+		        <aside class="sidebar">
+		            {{ sidebar }}
+		        </aside>
+		    {% endif %}
+		</div>
+	</div>
+{% endblock %}

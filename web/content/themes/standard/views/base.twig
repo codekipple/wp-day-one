@@ -1,0 +1,66 @@
+<!doctype html>
+<!--[if lt IE 7]><html class="no-js ie ie6 lt-ie9 lt-ie8 lt-ie7" {{site.language_attributes}}> <![endif]-->
+<!--[if IE 7]><html class="no-js ie ie7 lt-ie9 lt-ie8" {{site.language_attributes}}> <![endif]-->
+<!--[if IE 8]><html class="no-js ie ie8 lt-ie9" {{site.language_attributes}}> <![endif]-->
+<!--[if gt IE 8]><!--><html class="no-js" {{site.language_attributes}}> <!--<![endif]-->
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta charset="{{site.charset}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="codekipple" />
+    <meta name="Copyright" content="Copyright {{ site.name }} Ltd {{ "now"|date("Y") }}. All Rights Reserved." />
+    <link rel="pingback" href="{{site.pingback_url}}" />
+
+    {% if (function('is_search')) %}
+        <meta name="robots" content="noindex, nofollow" />
+    {% endif %}
+
+    <title>{{wp_title}}</title>
+    <meta name="title" content="{{wp_title}}" />
+
+    <!--[if gt IE 8]><!-->
+    <link rel="stylesheet" href="{{site.theme.link}}/css/main.css" media="all" />
+    <!--<![endif]-->
+
+    <!--[if (gte IE 6)&(lte IE 8)]>
+        <link rel="stylesheet" href="{{site.theme.link}}/css/oldie.css" media="all" />
+        <script src="{{site.theme.link}}/js/vendor/selectivizr.min.js"></script>
+    <![endif]-->
+
+    <script src="{{ 'vendor/modernizer.js' | script }}"></script>
+
+    {% if (function('is_singular')) %}
+        {{function('wp_enqueue_script', 'comment-reply')}}
+    {% endif %}
+
+    {{function('wp_head')}}
+
+    {% block head %}{% endblock %}
+</head>
+<body {% block theme %}{{ function('body_class') }}{% endblock %} data-source="base.twig">
+
+    {% block header %}
+        <header class="page-head" role="banner">
+
+        </header>
+    {% endblock %}
+
+    {% block main %}
+        <div role="main">
+            {% block content %}
+                Sorry, no content
+            {% endblock %}
+        </div>
+    {% endblock %}
+
+    {% block footer %}
+        <footer class="page-foot">
+
+        </footer>
+    {% endblock %}
+
+    {{ function('wp_footer') }}
+    {{ live_reload }}
+</body>
+</html>
