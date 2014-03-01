@@ -2,8 +2,15 @@ module.exports = {
     options: {
         livereload: true,
     },
-    scss: {
-        files: '<%= wpThemeDir %>sass/**/*.scss',
-        tasks: ['compass', 'autoprefixer']
+    css: {
+        files: ['<%= wpThemeDir %>sass/**/*.scss'],
+        tasks: ['sass', 'autoprefixer']
+    },
+    twig: {
+        files: ['<%= wpThemeDir %>views/**/*.twig']
+    },
+    js: {
+        files: ['<%= jsDir %>**/*.js', '!<%= jsDir %>*-pkg.js'],
+        tasks: ['browserify']
     }
 };
