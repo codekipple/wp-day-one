@@ -1,5 +1,10 @@
 module.exports = function(grunt) {
 
+    /*
+        Use load-grunt-config module to load config
+        files that are in sepaerate folders
+        --------------------------------------------------------------------
+    */
     var path = require('path');
 
     var config = require('load-grunt-config')(grunt, {
@@ -12,30 +17,50 @@ module.exports = function(grunt) {
         }
     });
 
-    // add some path variables for use in task options
+    /*
+        Add some path variables for use in the task files
+        --------------------------------------------------------------------
+    */
     config.wpThemeDir = config.package.wpThemeDir + config.package.wpTheme + '/';
     config.cssDir = config.wpThemeDir + 'css/';
+    config.sassDir = config.wpThemeDir + 'sass/';
     config.jsDir = config.wpThemeDir + 'js/';
     config.jsBuiltDir = config.wpThemeDir + 'js-built/';
+    config.viewsDir = config.wpThemeDir + 'views/';
     config.imagesDir = config.wpThemeDir + 'images/';
+    config.iconDir = config.imagesDir + 'icons/';
+    config.iconUrl = config.iconDir.replace('web', '');
     config.uploadsDir = 'web/content/uploads/';
     config.bowerDir = 'web/bower_components/';
 
-    // init config
+    /*
+        Init config
+        --------------------------------------------------------------------
+    */
     grunt.initConfig(config);
 
-    // task groups.
-    grunt.registerTask('optimise',[
-        'imagemin',
-        'svgmin'
+    /*
+        load our custom tasks
+        --------------------------------------------------------------------
+    */
+    grunt.loadTasks('grunt/tasks/release/tasks');
+
+    /*
+        Setup task groups
+        --------------------------------------------------------------------
+    */
+    grunt.registerTask('svg', [
+        'grunticon', // handles loading svg and fallbacks
     ]);
 
     grunt.registerTask('build', [
-        'sass',
-        'autoprefixer',
+        'sass', // our preprocessor of choice (libsass)
+        'postcss', // postprocessing
         'cssmin',
-        'browserify',
-        'uglify'
+        'shell:browserify', // js modules
+        'shell:uglify', // obfuscate js
+        'svg',
+        'release' // for cache busting
     ]);
 
     // Default task(s).

@@ -5,3 +5,4 @@
 web/wordpress*
 /node_modules
 /vendor
+/release.js

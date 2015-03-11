@@ -1,14 +1,19 @@
 module.exports = {
+    // options: {
+    //     includePaths: [
+    //         'path/to/imports/'
+    //     ]
+    // },
 
     dist: {
-        // options: {
-        //     includePaths: [
-        //         'path/to/imports/'
-        //     ]
-        // },
-        files: {
-            '<%= cssDir %>main.css': '<%= wpThemeDir %>sass/main.scss'
-        }
+        files: [
+            {
+                expand: true,
+                flatten: true,
+                ext: '.css',
+                src: '<%= sassDir %>*.scss',
+                dest: '<%= cssDir %>'
+            }
+        ]
     }
-
 };

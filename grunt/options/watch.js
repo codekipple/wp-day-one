@@ -1,16 +1,23 @@
+var files = {
+    css: '<%= sassDir %>**/*.scss',
+    js: '<%= jsDir %>**/*.js',
+    jsexclude: '!<%= jsDir %>*-pkg.js',
+    html: '<%= viewsDir %>**/*.twig'
+}
+
 module.exports = {
     options: {
         livereload: true,
     },
     css: {
-        files: ['<%= wpThemeDir %>sass/**/*.scss'],
-        tasks: ['sass', 'autoprefixer']
+        files: [files.css],
+        tasks: ['sass', 'postcss']
     },
     twig: {
-        files: ['<%= wpThemeDir %>views/**/*.twig']
+        files: [files.html]
     },
     js: {
-        files: ['<%= jsDir %>**/*.js', '!<%= jsDir %>*-pkg.js'],
-        tasks: ['browserify']
+        files: [files.js, files.jsexclude],
+        tasks: ['shell:browserify']
     }
 };
