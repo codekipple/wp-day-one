@@ -1,13 +1,13 @@
 <?php
 
-use CodekippleWordPressTheme\Api\Assets as Assets;
+use CodekippleWPTheme\Api\Assets as Assets;
 
 // add global js variable
 add_action('wp_head', function(){
     global $post; ?>
     <script type="text/javascript">
     /* <![CDATA[ */
-    var codekipple = {
+    var bolt = {
         ajaxurl: "<?php echo admin_url('admin-ajax.php'); ?>"
     };
     /* ]]> */

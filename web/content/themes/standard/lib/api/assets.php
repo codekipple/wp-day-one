@@ -1,8 +1,8 @@
 <?php
 
-namespace CodekippleWordPressTheme\Api\Assets;
+namespace CodekippleWPTheme\Api\Assets;
 
-use CodekippleWordPressTheme\Api\Environment as Environment;
+use CodekippleWPTheme\Api\Environment as Environment;
 
 function live_reload()
 {
@@ -11,11 +11,28 @@ function live_reload()
     }
 }
 
-function script($script_url)
+function script($asset_url)
 {
-    $script_path = get_bloginfo('template_directory') .'/js';
-    $script_path .= (!Environment\is_dev()) ? '-built' : '';
-    $script_path .= '/';
+    $path = 'js';
+    $path .= (!Environment\is_dev()) ? '-built' : '';
+    $path .= '/';
+    $path = release_path() . $path . $asset_url;
 
-    return $script_path . $script_url;
+    return $path;
+}
+
+function css($asset_url)
+{
+    $path = 'css/';
+    $path = release_path() . $path . $asset_url;
+
+    return $path;
+}
+
+function release_path()
+{
+    $release = json_decode(file_get_contents(WEB_DIR . '/../release.js'));
+    $release_path = get_bloginfo('stylesheet_directory') . '/release/' . $release->path .'/';
+
+    return $release_path;
 }

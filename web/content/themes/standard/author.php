@@ -3,7 +3,7 @@
     The template for displaying Author Archive pages
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class AuthorController extends BaseController
 {

@@ -5,7 +5,7 @@
     Methods for TimberHelper can be found in the /functions sub-directory
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class SearchController extends BaseController
 {

@@ -8,7 +8,7 @@
 	Learn more: http://codex.wordpress.org/Template_Hierarchy
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class ArchiveController extends BaseController
 {

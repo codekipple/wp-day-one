@@ -3,7 +3,7 @@
     The template for displaying 404 pages (Not Found)
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class FourOhFourController extends BaseController
 {

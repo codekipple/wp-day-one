@@ -1,6 +1,6 @@
 <?php
 
-namespace CodekippleWordPressTheme\Api\Environment;
+namespace CodekippleWPTheme\Api\Environment;
 
 /*
     WP_ENV is defined in wp-config.php

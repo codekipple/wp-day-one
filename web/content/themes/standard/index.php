@@ -7,7 +7,7 @@
 	E.g., it puts together the home page when no home.php file
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class IndexController extends BaseController
 {

@@ -3,7 +3,7 @@
     The template for displaying all pages.
 */
 
-use CodekippleWordPressTheme\Controller\Controller as BaseController;
+use CodekippleWPTheme\Controller\Controller as BaseController;
 
 class PageController extends BaseController
 {
