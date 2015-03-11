@@ -1,0 +1,26 @@
+namespace :wordpress do
+
+    desc "Symlink shared uploads directory."
+    task :create_symlink do
+        on roles(:all) do
+            execute "rm -rf #{release_path}/web/content/uploads && ln -nfs #{shared_path}/uploads #{release_path}/web/content/uploads"
+        end
+    end
+
+    namespace :plugins do
+        desc "Remove unsafe plugins."
+        task :remove do
+            on roles(:all) do
+              execute "rm -rf #{release_path}/web/content/plugins/debug-*"
+            end
+        end
+    end
+
+    desc "Run WordPress over CLI to execute migrations."
+    task :execute do
+        on roles(:all) do
+            execute "php #{release_path}/web/index.php"
+        end
+    end
+
+end

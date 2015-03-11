@@ -21,5 +21,5 @@ require 'wordpress/wp-blog-header.php';
 
 if ($cli) {
     /* Correct database absolute paths */
-    require realpath(__DIR__ . '/../app/migration') . '/environment.php';
+    require realpath(__DIR__ . '/../lib/migration') . '/environment.php';
 }

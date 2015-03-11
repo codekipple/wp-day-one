@@ -1,0 +1,10 @@
+namespace :grunt do
+
+    desc "Grunt build."
+    task :build do
+        on roles(:all) do
+            run "cd #{latest_release} && grunt build"
+        end
+    end
+
+end

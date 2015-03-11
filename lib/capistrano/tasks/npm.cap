@@ -1,0 +1,17 @@
+namespace :npm do
+
+    desc "Copy node modules from previous release."
+    task :copy_modules do
+        on roles(:all) do
+            run "nodeModulesDir=#{current_path}/node_modules; if [ -d $nodeModulesDir ] || [ -h $nodeModulesDir ]; then cp -a $nodeModulesDir #{latest_release}; fi;"
+        end
+    end
+
+    desc "Install node modules."
+    task :install do
+        on roles(:all) do
+            run "cd #{latest_release} && npm install"
+        end
+    end
+
+end

@@ -1,0 +1,17 @@
+namespace :composer do
+
+    desc "Runs composer to install vendors from composer.lock file"
+    task :install do
+        on roles(:all) do
+            run "#{try_sudo} sh -c 'cd #{latest_release} && #{composer_bin} install #{composer_options}'"
+        end
+    end
+
+    desc "Copy vendors from previous release."
+    task :copy_vendors do
+        on roles(:all) do
+            run "vendorDir=#{current_path}/vendor; if [ -d $vendorDir ] || [ -h $vendorDir ]; then cp -a $vendorDir #{latest_release}; fi;"
+        end
+    end
+
+end

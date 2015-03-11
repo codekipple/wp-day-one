@@ -1,0 +1,17 @@
+namespace :db do
+
+    desc "Push database"
+    task :push do
+        run_locally do
+            execute "mysqldump -u root -p#{fetch(:db_dev_password)} #{fetch(:db_dev)} | ssh -C #{fetch(:user)}@#{fetch(:ssh_server)} mysql -u #{fetch(:db_user)} -p#{fetch(:db_password)} -h#{fetch(:db_server)} #{fetch(:db_name)}"
+        end
+    end
+
+    desc "Pull database"
+    task :pull do
+        run_locally do
+            execute "ssh -C #{fetch(:user)}@#{fetch(:ssh_server)} mysqldump -f -u #{fetch(:db_user)} -p#{fetch(:db_password)} -h#{fetch(:db_server)} --single-transaction #{fetch(:db_name)} | mysql -u root -p#{fetch(:db_dev_password)} #{fetch(:db_dev)}"
+        end
+    end
+
+end
