@@ -1,5 +1,5 @@
 {
-    "name": "codekipple/wordpress-site",
+    "name": "codekipple/wp-day-one",
     "description": "WordPress Project",
     "authors": [
         {
@@ -9,19 +9,23 @@
     "type": "project",
     "repositories": [
         {
-            "type"   : "package",
+            "type": "composer",
+            "url" : "http://wpackagist.org"
+        },
+        {
+            "type" : "package",
             "package": {
-                "name"   : "wordpress/wordpress",
-                "type"   : "wordpress-core",
-                "version": "3.8.1",
-                "dist"   : {
-                    "url" : "http://wordpress.org/wordpress-3.8.1.zip",
+                "name" : "wordpress/wordpress",
+                "type" : "wordpress-core",
+                "version": "4.1.1",
+                "dist" : {
+                    "url" : "http://wordpress.org/wordpress-4.1.1.zip",
                     "type": "zip"
                 },
                 "source" : {
-                    "url"  : "https://github.com/WordPress/WordPress",
+                    "url" : "https://github.com/WordPress/WordPress",
                     "type" : "git",
-                    "reference": "3.8.1"
+                    "reference": "4.1.1"
                 },
                 "require": {
                     "johnpbloch/wordpress-core-installer": "~0.1"
@@ -31,17 +35,18 @@
     ],
     "require": {
         "php": ">=5.4",
-        "wordpress/wordpress": ">=3.8.1",
-        "imagine/imagine": "~0.5.0"
+        "wordpress/wordpress": ">=4.1.1"
     },
     "extra" : {
         "installer-paths" : {
-            "web/content/plugins/{$name}/": ["type:wordpress-plugin"]
+            "web/content/plugins/{$name}/": ["type:wordpress-plugin"],
+            "web/content/themes/{$name}/": ["type:wordpress-theme"]
         },
         "wordpress-install-dir": "web/wordpress"
     },
     "config": {
-        "bin-dir": "bin"
+        "bin-dir": "bin",
+        "preferred-install": "dist"
     },
     "minimum-stability": "dev",
     "autoload": {
