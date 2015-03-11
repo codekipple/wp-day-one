@@ -2,6 +2,8 @@ WordPress SEO by Yoast
 ======================
 
 [![Build Status](https://api.travis-ci.org/Yoast/wordpress-seo.png?branch=master)](https://travis-ci.org/Yoast/wordpress-seo)
+[![Stable Version](https://poser.pugx.org/yoast/wordpress-seo/v/stable.svg)](https://packagist.org/packages/yoast/wordpress-seo)
+[![License](https://poser.pugx.org/yoast/wordpress-seo/license.svg)](https://packagist.org/packages/yoast/wordpress-seo)
 
 Welcome to the WordPress SEO Github repository
 ----------------------------------------------
@@ -14,10 +16,14 @@ Installation
 ------------
 
 Here's a [guide on how to install WordPress SEO in your WordPress site](https://yoast.com/wordpress/seo/installation/).
-If you want to run the Git version though, you have two options:
 
-* You can clone the GitHub repository: https://github.com/yoast/wordpress-seo.git
-* Downloading it directly unfortunately won't work as the .zip file doesn't contain the submodules.
+If you want to run the Git version for development though, you can set it up with [Composer](https://getcomposer.org/):
+
+```bash
+composer create-project yoast/wordpress-seo:dev-trunk --prefer-source --keep-vcs
+```
+
+Read more about [using Composer with WordPress SEO](https://github.com/Yoast/wordpress-seo/wiki/Using-Composer).
 
 This will download the latest development version of WordPress SEO by Yoast. While this version is usually stable,
 it is not recommended for use in a production environment.
@@ -29,7 +35,7 @@ If you find an issue, [let us know here](https://github.com/yoast/wordpress-seo/
 Support
 -------
 This is a developer's portal for WordPress SEO by Yoast and should not be used for support. Please visit the
-[support forums](http://wordpress.org/support/plugin/wordpress-seo).
+[support forums](https://wordpress.org/support/plugin/wordpress-seo).
 
 Contributions
 -------------

@@ -1,6 +1,7 @@
 <?php
 /**
- * @package Admin
+ * @package    WPSEO
+ * @subpackage Admin
  */
 
 if ( ! defined( 'WPSEO_VERSION' ) ) {
@@ -40,9 +41,9 @@ function wpseo_set_ignore() {
 
 	check_ajax_referer( 'wpseo-ignore' );
 
-	$options                          = get_option( 'wpseo' );
-	$ignore_key 					  = sanitize_text_field( $_POST['option'] );
-	$options['ignore_' . $ignore_key] = true;
+	$options                            = get_option( 'wpseo' );
+	$ignore_key                         = sanitize_text_field( $_POST['option'] );
+	$options[ 'ignore_' . $ignore_key ] = true;
 	update_option( 'wpseo', $options );
 	die( '1' );
 }
@@ -62,14 +63,14 @@ function wpseo_kill_blocking_files() {
 	$message = 'There were no files to delete.';
 	$options = get_option( 'wpseo' );
 	if ( is_array( $options['blocking_files'] ) && $options['blocking_files'] !== array() ) {
-		$message = 'success';
+		$message       = 'success';
 		$files_removed = 0;
 		foreach ( $options['blocking_files'] as $k => $file ) {
 			if ( ! @unlink( $file ) ) {
 				$message = __( 'Some files could not be removed. Please remove them via FTP.', 'wordpress-seo' );
 			}
 			else {
-				unset( $options['blocking_files'][$k] );
+				unset( $options['blocking_files'][ $k ] );
 				$files_removed++;
 			}
 		}
@@ -91,15 +92,17 @@ function wpseo_get_suggest() {
 	check_ajax_referer( 'wpseo-get-suggest' );
 
 	$term   = urlencode( $_GET['term'] );
-	$result = wp_remote_get( 'http://www.google.com/complete/search?output=toolbar&q=' . $term );
-
-	preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
+	$result = wp_remote_get( 'https://www.google.com/complete/search?output=toolbar&q=' . $term );
 
 	$return_arr = array();
 
-	if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
-		foreach ( $matches[1] as $match ) {
-			$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
+	if ( ! is_wp_error( $result ) ) {
+		preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
+
+		if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
+			foreach ( $matches[1] as $match ) {
+				$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
+			}
 		}
 	}
 	echo json_encode( $return_arr );
@@ -109,13 +112,28 @@ function wpseo_get_suggest() {
 add_action( 'wp_ajax_wpseo_get_suggest', 'wpseo_get_suggest' );
 
 /**
+ * Used in the editor to replace vars for the snippet preview
+ */
+function wpseo_ajax_replace_vars() {
+	check_ajax_referer( 'wpseo-replace-vars' );
+
+	$post = get_post( $_POST['post_id'] );
+	$omit = array( 'excerpt', 'excerpt_only', 'title' );
+	echo wpseo_replace_vars( stripslashes( $_POST['string'] ), $post, $omit );
+	die;
+}
+
+add_action( 'wp_ajax_wpseo_replace_vars', 'wpseo_ajax_replace_vars' );
+
+/**
  * Save an individual SEO title from the Bulk Editor.
  */
 function wpseo_save_title() {
+	check_ajax_referer( 'wpseo-bulk-editor' );
 
-	$new_title      = $_POST['new_title'] ;
+	$new_title      = $_POST['new_value'];
 	$id             = intval( $_POST['wpseo_post_id'] );
-	$original_title = $_POST['existing_title'];
+	$original_title = $_POST['existing_value'];
 
 	$results = wpseo_upsert_new_title( $id, $new_title, $original_title );
 
@@ -128,6 +146,12 @@ add_action( 'wp_ajax_wpseo_save_title', 'wpseo_save_title' );
 /**
  * Helper function for updating an existing seo title or create a new one
  * if it doesn't already exist.
+ *
+ * @param int    $post_id
+ * @param string $new_title
+ * @param string $original_title
+ *
+ * @return string
  */
 function wpseo_upsert_new_title( $post_id, $new_title, $original_title ) {
 
@@ -139,8 +163,20 @@ function wpseo_upsert_new_title( $post_id, $new_title, $original_title ) {
 /**
  * Helper function to update a post's meta data, returning relevant information
  * about the information updated and the results or the meta update.
+ *
+ * @param int    $post_id
+ * @param string $new_meta_value
+ * @param string $orig_meta_value
+ * @param string $meta_key
+ * @param string $return_key
+ *
+ * @return string
  */
 function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_key, $return_key ) {
+
+	$post_id                   = intval( $post_id );
+	$sanitized_new_meta_value  = wp_strip_all_tags( $new_meta_value );
+	$orig_meta_value           = wp_strip_all_tags( $orig_meta_value );
 
 	$upsert_results = array(
 		'status'                 => 'success',
@@ -151,7 +187,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 
 	$the_post = get_post( $post_id );
 	if ( empty( $the_post ) ) {
-		
+
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = __( 'Post doesn\'t exist.', 'wordpress-seo' );
 
@@ -160,7 +196,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 
 	$post_type_object = get_post_type_object( $the_post->post_type );
 	if ( ! $post_type_object ) {
-		
+
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'Post has an invalid Post Type: %s.', 'wordpress-seo' ), $the_post->post_type );
 
@@ -168,7 +204,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 	}
 
 	if ( ! current_user_can( $post_type_object->cap->edit_posts ) ) {
-		
+
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'You can\'t edit %s.', 'wordpress-seo' ), $post_type_object->label );
 
@@ -176,7 +212,7 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 	}
 
 	if ( ! current_user_can( $post_type_object->cap->edit_others_posts ) && $the_post->post_author != get_current_user_id() ) {
-		
+
 		$upsert_results['status']  = 'failure';
 		$upsert_results['results'] = sprintf( __( 'You can\'t edit %s that aren\'t yours.', 'wordpress-seo' ), $post_type_object->label );
 
@@ -184,7 +220,14 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
 
 	}
 
-	$res = update_post_meta( $post_id, $meta_key, $new_meta_value );
+	if ( $sanitized_new_meta_value === $orig_meta_value && $sanitized_new_meta_value !== $new_meta_value ) {
+		$upsert_results['status']  = 'failure';
+		$upsert_results['results'] = __( 'You have used HTML in your value which is not allowed.', 'wordpress-seo' );
+
+		return $upsert_results;
+	}
+
+	$res = update_post_meta( $post_id, $meta_key, $sanitized_new_meta_value );
 
 	$upsert_results['status']  = ( $res !== false ) ? 'success' : 'failure';
 	$upsert_results['results'] = $res;
@@ -196,8 +239,10 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
  * Save all titles sent from the Bulk Editor.
  */
 function wpseo_save_all_titles() {
-	$new_titles      = $_POST['titles'];
-	$original_titles = $_POST['existing_titles'];
+	check_ajax_referer( 'wpseo-bulk-editor' );
+
+	$new_titles      = $_POST['items'];
+	$original_titles = $_POST['existing_items'];
 
 	$results = array();
 
@@ -217,10 +262,11 @@ add_action( 'wp_ajax_wpseo_save_all_titles', 'wpseo_save_all_titles' );
  * Save an individual meta description from the Bulk Editor.
  */
 function wpseo_save_description() {
+	check_ajax_referer( 'wpseo-bulk-editor' );
 
-	$new_metadesc      = $_POST['new_metadesc'] ;
+	$new_metadesc      = $_POST['new_value'];
 	$id                = intval( $_POST['wpseo_post_id'] );
-	$original_metadesc = $_POST['existing_metadesc'];
+	$original_metadesc = $_POST['existing_value'];
 
 	$results = wpseo_upsert_new_description( $id, $new_metadesc, $original_metadesc );
 
@@ -228,10 +274,14 @@ function wpseo_save_description() {
 	die();
 }
 
-add_action( 'wp_ajax_wpseo_save_desc', 'wpseo_save_description' );
+add_action( 'wp_ajax_wpseo_save_metadesc', 'wpseo_save_description' );
 
 /**
  * Helper function to create or update a post's meta description.
+ *
+ * @param int    $post_id
+ * @param string $new_metadesc
+ * @param string $original_metadesc
  */
 function wpseo_upsert_new_description( $post_id, $new_metadesc, $original_metadesc ) {
 
@@ -244,8 +294,10 @@ function wpseo_upsert_new_description( $post_id, $new_metadesc, $original_metade
  * Save all description sent from the Bulk Editor.
  */
 function wpseo_save_all_descriptions() {
-	$new_metadescs      = $_POST['metadescs'];
-	$original_metadescs = $_POST['existing_metadescs'];
+	check_ajax_referer( 'wpseo-bulk-editor' );
+
+	$new_metadescs      = $_POST['items'];
+	$original_metadescs = $_POST['existing_items'];
 
 	$results = array();
 
@@ -259,4 +311,4 @@ function wpseo_save_all_descriptions() {
 	die();
 }
 
-add_action( 'wp_ajax_wpseo_save_all_descs', 'wpseo_save_all_descriptions' );
+add_action( 'wp_ajax_wpseo_save_all_descriptions', 'wpseo_save_all_descriptions' );
