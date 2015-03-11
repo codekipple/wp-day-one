@@ -1,9 +1,33 @@
-# BEGIN WordPress
+# ----------------------------------------------------------------------
+# WordPress
+# ----------------------------------------------------------------------
+
+Options +FollowSymLinks
+
 <IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule . /index.php [L]
+  RewriteEngine On
+  RewriteBase /
+
+  # General
+
+  ## Cache busting
+  RewriteRule ^(.*)release/[a-z0-9\.\-]+/(.*) /$1/$2 [QSA,L]
+
+  # Redirect wordpress dir
+  RewriteRule ^wordpress/?$ / [R=301,L]
+
+  # Redirect wp-admin to new admin location
+  RewriteRule ^admin wordpress/wp-admin [R=301,L]
+  RewriteRule ^wp-admin wordpress/wp-admin [R=301,L]
+
+  # Block the include-only files.
+  RewriteRule .*/wp-admin/includes/.*\.php - [F,L]
+  RewriteRule .*/wp-includes/.*\.php$ - [F,L]
+
+  # Block access to git
+  RewriteRule .*\.git - [F,L]
+
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.php [L]
 </IfModule>
-# END WordPress
