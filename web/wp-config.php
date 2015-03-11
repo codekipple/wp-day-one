@@ -71,6 +71,12 @@ define('SECURE_AUTH_SALT', 'put your unique phrase here');
 define('LOGGED_IN_SALT',   'put your unique phrase here');
 define('NONCE_SALT',       'put your unique phrase here');
 
+/*
+  Symfony2 Forms CRSF Token
+  To secure your application against CSRF attacks, you need to define a CSRF secret. Generate a random string with at least 32 characters, insert it in the above snippet and make sure that nobody except your web server can access the secret.
+ */
+define('FORMS_CRSF_TOKEN', 'put your unique phrase here');
+
 /**
  * limit post revisions to 10 to avoid database bloat
  * default is 25

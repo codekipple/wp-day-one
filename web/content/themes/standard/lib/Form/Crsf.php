@@ -35,8 +35,8 @@ class Form_Crsf
 
     protected function csrfProvider()
     {
-        // generate a CSRF secret from somewhere
-        $csrfSecret = '232323';
+        // CSRF secret token, currently set in wp-config.php
+        $csrfSecret = FORMS_CRSF_TOKEN;
 
         // create a Session object from the HttpFoundation component
         $session = new Session();
