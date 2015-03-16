@@ -2,7 +2,6 @@
 
 namespace CodekippleWPTheme\Controller;
 
-use CodekippleWPTheme\Api\Images as Images;
 use CodekippleWPTheme\Api\Assets as Assets;
 
 abstract class Controller
@@ -12,9 +11,6 @@ abstract class Controller
 
     function __construct() {
         $this->context = \Timber::get_context();
-
-        // environment (dev, demo, live)
-        $this->context['WP_ENV'] = WP_ENV;
 
         // live reload
         $this->context['live_reload'] = Assets\live_reload();
