@@ -8,42 +8,29 @@
 	Learn more: http://codex.wordpress.org/Template_Hierarchy
 */
 
-use CodekippleWPTheme\Controller\Controller as BaseController;
+$context = Timber::get_context();
 
-class ArchiveController extends BaseController
-{
-    protected function setTemplates()
-    {
-        $this->templates = array(
-            'archive.twig',
-            'index.twig'
-        );
-    }
-
-    public function indexAction()
-    {
-		$this->context['title'] = 'Archive';
-
-		if (is_day()) {
-			$this->context['title'] = 'Archive: '.get_the_date( 'D M Y' );
-		} else if (is_month()) {
-			$this->context['title'] = 'Archive: '.get_the_date( 'M Y' );
-		} else if (is_year()) {
-			$this->context['title'] = 'Archive: '.get_the_date( 'Y' );
-		} else if (is_tag()) {
-			$this->context['title'] = single_tag_title('', false);
-		} else if (is_category()) {
-			$this->context['title'] = single_cat_title('', false);
-			array_unshift($templates, 'archive-'.get_query_var('cat').'.twig');
-		} else if (is_post_type_archive()) {
-			$this->context['title'] = post_type_archive_title('', false);
-			array_unshift($templates, 'archive-'.get_post_type().'.twig');
-		}
-
-        $this->context['posts'] = \Timber::get_posts();
-
-        parent::indexAction();
-    }
+$context['title'] = 'Archive';
+if (is_day()) {
+    $context['title'] = 'Archive: '.get_the_date('D M Y');
+} else if (is_month()) {
+    $context['title'] = 'Archive: '.get_the_date('M Y');
+} else if (is_year()) {
+    $context['title'] = 'Archive: '.get_the_date('Y' );
+} else if (is_tag()) {
+    $context['title'] = single_tag_title('', false);
+} else if (is_category()) {
+    $context['title'] = single_cat_title('', false);
+    array_unshift($templates, 'archive-' . get_query_var('cat') . '.twig');
+} else if (is_post_type_archive()) {
+    $context['title'] = post_type_archive_title('', false);
+    array_unshift($templates, 'archive-' . get_post_type() . '.twig');
 }
 
-new ArchiveController;
+$context['posts'] = Timber::get_posts();
+$templates = array(
+    'archive.twig',
+    'index.twig'
+);
+
+Timber::render($templates, $context);

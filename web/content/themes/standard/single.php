@@ -3,27 +3,13 @@
     The Template for displaying all single posts
 */
 
-use CodekippleWPTheme\Controller\Controller as BaseController;
-
-class SingleController extends BaseController
-{
-    protected function setTemplates()
-    {
-        $this->templates = array(
-            'single-' . $this->context['post']->ID . '.twig',
-            'single-' . $this->context['post']->post_type . '.twig',
-            'single.twig'
-        );
-    }
-
-    public function indexAction()
-    {
-        $this->context['comment_form'] = \TimberHelper::get_comment_form();
-
-        $this->context['post'] = new \TimberPost();
-
-        parent::indexAction();
-    }
-}
-
-new SingleController;
+$context = Timber::get_context();
+$post = Timber::query_post();
+$context['post'] = $post;
+$context['comment_form'] = TimberHelper::get_comment_form();
+$templates = array(
+    'single-' . $post->ID . '.twig',
+    'single-' . $post->post_type . '.twig',
+    'single.twig'
+);
+Timber::render($templates, $context);

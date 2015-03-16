@@ -7,23 +7,7 @@
 	E.g., it puts together the home page when no home.php file
 */
 
-use CodekippleWPTheme\Controller\Controller as BaseController;
-
-class IndexController extends BaseController
-{
-    protected function setTemplates()
-    {
-        $this->templates = array(
-            'index.twig'
-        );
-    }
-
-    public function indexAction()
-    {
-        $this->context['posts'] = \Timber::get_posts();
-
-        parent::indexAction();
-    }
-}
-
-new IndexController;
+$context = Timber::get_context();
+$context['posts'] = Timber::get_posts();
+$templates = array('index.twig');
+Timber::render($templates, $context);
