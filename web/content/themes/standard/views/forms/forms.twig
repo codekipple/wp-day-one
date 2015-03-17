@@ -1,0 +1,39 @@
+{% extends "form_div_layout.html.twig" %}
+
+{#
+    Alter error output
+#}
+{% block form_errors -%}
+    {% if errors|length > 0 -%}
+        <div class="form-errors">
+            <ul class="bare-list">
+                {%- for error in errors -%}
+                    <li>{{ error.message }}</li>
+                {%- endfor -%}
+            </ul>
+        </div>
+    {%- endif %}
+{%- endblock form_errors %}
+
+{#
+    Add 'control-group' class to all form rows
+#}
+{% block form_row -%}
+    {% set error_class = (form_errors(form)) ? ' has-error' : '' %}
+    <div class="control-group group{{ error_class }}">
+        {{- form_label(form) -}}
+        {{- form_errors(form) -}}
+        {{- form_widget(form) -}}
+    </div>
+{%- endblock form_row %}
+
+{#
+    Add 'form__control' class to all form controls
+#}
+{% block widget_attributes -%}
+    {% set class = (attr.class is defined) ? attr.class : '' %}
+    {% set attr = attr|merge({'class': class ~ ' form__control'}) %}
+
+    {{ parent() }}
+
+{%- endblock widget_attributes %}

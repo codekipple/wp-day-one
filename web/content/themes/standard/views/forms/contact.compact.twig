@@ -1,0 +1,32 @@
+{% form_theme form with ['forms.compact.twig'] %}
+
+<form action="{{ post.link }}" class="contact-form" method="post" {{ form_enctype(form) }}>
+    {% if not form.vars.valid %}
+        <div class="form__errors opt-in-type">
+            <p>Your enquiry was not sent, please review and fix the following problems.</p>
+            <ul>
+                {% for children in form.children %}
+                    {% if not children.vars.valid %}
+                        {{ form_errors(children) }}
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {{ form_row(form.message, {
+        'attr': {'placeholder': 'Type your message here'}
+    }) }}
+
+    {{ form_row(form.name, {
+        'attr': {'placeholder': 'name'}
+    }) }}
+
+    {{ form_row(form.email, {
+        'attr': {'placeholder': 'email'}
+    }) }}
+
+    {{ form_widget(form) }}
+
+    <button class="btn">Send</button>
+</form>

@@ -1,0 +1,17 @@
+<form action="{{ post.link }}" class="contact-form" method="post" {{ form_enctype(form) }}>
+    {{ form_row(form.message, {
+        'attr': {'placeholder': 'Type your message here'}
+    }) }}
+
+    {{ form_row(form.name, {
+        'attr': {'placeholder': 'name'}
+    }) }}
+
+    {{ form_row(form.email, {
+        'attr': {'placeholder': 'email'}
+    }) }}
+
+    {{ form_widget(form) }}
+
+    <button class="btn">Send</button>
+</form>

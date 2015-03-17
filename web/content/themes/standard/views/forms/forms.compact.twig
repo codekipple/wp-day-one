@@ -1,0 +1,24 @@
+{% extends "forms.twig" %}
+
+{#
+    compact errors
+#}
+{% block form_errors -%}
+    {% if errors|length > 0 -%}
+        {%- for error in errors -%}
+            <li>{{ error.message }}</li>
+        {%- endfor -%}
+    {%- endif %}
+{%- endblock form_errors %}
+
+{#
+    Form row only shows label and input
+    no inline error messages
+#}
+{% block form_row -%}
+    {% set error_class = (form_errors(form)) ? ' has-error' : '' %}
+    <div class="control-group group{{ error_class }}">
+        {{- form_label(form) -}}
+        {{- form_widget(form) -}}
+    </div>
+{%- endblock form_row %}

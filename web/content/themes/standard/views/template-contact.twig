@@ -1,0 +1,7 @@
+{% extends "base.twig" %}
+
+{% block content %}
+    {% include "forms/contact.twig" with {'form': form, 'post': post} only %}
+
+    {{ parent() }}
+{% endblock %}

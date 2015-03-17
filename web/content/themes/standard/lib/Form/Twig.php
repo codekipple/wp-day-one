@@ -12,7 +12,7 @@ class Form_Twig
     */
     private function __construct($twig)
     {
-        $defaultFormTheme = 'forms.twig';
+        $defaultFormTheme = 'forms/forms.twig';
         $formEngine = new TwigRendererEngine(array($defaultFormTheme));
         $formEngine->setEnvironment($twig);
 
