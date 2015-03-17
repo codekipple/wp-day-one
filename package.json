@@ -14,7 +14,7 @@
     "grunt-contrib-watch": "^0.6.1",
     "grunt-grunticon": "^1.2.13",
     "grunt-postcss": "^0.1.0",
-    "grunt-sass": "^0.14.1",
+    "grunt-sass": "^0.18.1",
     "grunt-shell": "^1.1.1",
     "load-grunt-config": "^0.13.1",
     "uglify-js": "^2.4.15"
