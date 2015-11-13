@@ -22,26 +22,29 @@ define('VENDORS_DIR', realpath(WEB_DIR . '/../vendor'));
 if (!strstr(__DIR__, '.')) {
   define('WP_ENV', 'dev');
   define('DB_PASSWORD', 'password');
+  define('DB_NAME', 'change_me');
+  define('DB_USER', 'change_me');
   define('WP_DEBUG', true);
   define('SAVEQUERIES', true);
 } else if (strstr(__DIR__, 'demo') || strstr(__DIR__, 'staging')) {
   define('WP_ENV', 'demo');
-  define('DB_PASSWORD', 'change me');
+  define('DB_PASSWORD', 'change_me');
+  define('DB_NAME', 'change_me');
+  define('DB_USER', 'change_me');
   define('WP_DEBUG', false);
 } else {
   define('WP_ENV', 'live');
-  define('DB_PASSWORD', 'change me');
+  define('DB_PASSWORD', 'change_me');
+  define('DB_NAME', 'change_me');
+  define('DB_USER', 'change_me');
   define('WP_DEBUG', false);
 }
+
+defined('DB_HOST') or define('DB_HOST', 'localhost');
 
 defined('WP_HOME') or define('WP_HOME', 'http://' . $_SERVER['HTTP_HOST']);
 define('WP_SITEURL', WP_HOME . '/wordpress');
 
-// ** MySQL settings - You can get this info from your web host ** //
-define('DB_PREFIX', 'wpdayone');
-defined('DB_HOST') or define('DB_HOST', 'localhost');
-defined('DB_NAME') or define('DB_NAME', implode('_', array(DB_PREFIX, WP_ENV)));
-defined('DB_USER') or define('DB_USER', DB_NAME);
 /** Database Charset to use in creating database tables. */
 define('DB_CHARSET', 'utf8');
 /** The Database Collate type. Don't change this if in doubt. */
