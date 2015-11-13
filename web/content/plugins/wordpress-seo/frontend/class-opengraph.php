@@ -1,7 +1,6 @@
 <?php
 /**
- * @package    WPSEO
- * @subpackage Frontend
+ * @package WPSEO\Frontend
  */
 
 /**
@@ -15,18 +14,12 @@ class WPSEO_OpenGraph {
 	public $options = array();
 
 	/**
-	 * @var array $shown_images Holds the images that have been put out as OG image.
-	 */
-	public $shown_images = array();
-
-	/**
 	 * Class constructor.
 	 */
 	public function __construct() {
 		$this->options = WPSEO_Options::get_all();
 
-		global $fb_ver;
-		if ( isset( $fb_ver ) || class_exists( 'Facebook_Loader' ) ) {
+		if ( isset( $GLOBALS['fb_ver'] ) || class_exists( 'Facebook_Loader', false ) ) {
 			add_filter( 'fb_meta_tags', array( $this, 'facebook_filter' ), 10, 1 );
 		}
 		else {
@@ -84,7 +77,7 @@ class WPSEO_OpenGraph {
 			return false;
 		}
 
-		echo '<meta property="' . esc_attr( $property ) . '" content="' . esc_attr( $content ) . '" />' . "\n";
+		echo '<meta property="', esc_attr( $property ), '" content="', esc_attr( $content ), '" />', "\n";
 
 		return true;
 	}
@@ -137,13 +130,12 @@ class WPSEO_OpenGraph {
 			return false;
 		}
 
-		global $post;
 		/**
-		 * Filter: 'wpseo_opengraph_author_facebook' - Allow developers to filter the WP SEO post authors facebook profile URL
+		 * Filter: 'wpseo_opengraph_author_facebook' - Allow developers to filter the Yoast SEO post authors facebook profile URL
 		 *
 		 * @api bool|string $unsigned The Facebook author URL, return false to disable
 		 */
-		$facebook = apply_filters( 'wpseo_opengraph_author_facebook', get_the_author_meta( 'facebook', $post->post_author ) );
+		$facebook = apply_filters( 'wpseo_opengraph_author_facebook', get_the_author_meta( 'facebook', $GLOBALS['post']->post_author ) );
 
 		if ( $facebook && ( is_string( $facebook ) && $facebook !== '' ) ) {
 			$this->og_tag( 'article:author', $facebook );
@@ -163,7 +155,7 @@ class WPSEO_OpenGraph {
 	 */
 	public function website_facebook() {
 
-		if ( $this->options['facebook_site'] !== '' ) {
+		if ( 'article' === $this->type( false ) && ! empty( $this->options['facebook_site'] ) ) {
 			$this->og_tag( 'article:publisher', $this->options['facebook_site'] );
 
 			return true;
@@ -179,15 +171,15 @@ class WPSEO_OpenGraph {
 	 * @return boolean
 	 */
 	public function site_owner() {
-		if ( 0 != $this->options['fbadminapp'] ) {
+		if ( isset( $this->options['fbadminapp'] ) && $this->options['fbadminapp'] != 0 ) {
 			$this->og_tag( 'fb:app_id', $this->options['fbadminapp'] );
 
 			return true;
 		}
-		elseif ( is_array( $this->options['fb_admins'] ) && $this->options['fb_admins'] !== array() ) {
+		else if ( isset( $this->options['fb_admins'] ) && is_array( $this->options['fb_admins'] ) && $this->options['fb_admins'] !== array() ) {
 			$adminstr = implode( ',', array_keys( $this->options['fb_admins'] ) );
 			/**
-			 * Filter: 'wpseo_opengraph_admin' - Allow developer to filter the fb:admins string put out by WP SEO
+			 * Filter: 'wpseo_opengraph_admin' - Allow developer to filter the fb:admins string put out by Yoast SEO
 			 *
 			 * @api string $adminstr The admin string
 			 */
@@ -212,21 +204,29 @@ class WPSEO_OpenGraph {
 	 * @return string|boolean
 	 */
 	public function og_title( $echo = true ) {
-		if ( is_singular() ) {
-			$title = WPSEO_Meta::get_value( 'opengraph-title' );
+
+		$frontend      = WPSEO_Frontend::get_instance();
+		$is_posts_page = $frontend->is_posts_page();
+
+		if ( is_singular() || $is_posts_page ) {
+
+			$post_id = ( $is_posts_page ) ? get_option( 'page_for_posts' ) : get_the_ID();
+			$post    = get_post( $post_id );
+			$title   = WPSEO_Meta::get_value( 'opengraph-title', $post_id );
+
 			if ( $title === '' ) {
-				$title = WPSEO_Frontend::get_instance()->title( '' );
+				$title = $frontend->title( '' );
 			}
 			else {
-				// Replace WP SEO Variables
-				$title = wpseo_replace_vars( $title, get_post() );
+				// Replace Yoast SEO Variables.
+				$title = wpseo_replace_vars( $title, $post );
 			}
 		}
 		else if ( is_front_page() ) {
-			$title = ( $this->options['og_frontpage_title'] !== '' ) ? $this->options['og_frontpage_title'] : WPSEO_Frontend::get_instance()->title( '' );
+			$title = ( isset( $this->options['og_frontpage_title'] ) && $this->options['og_frontpage_title'] !== '' ) ? $this->options['og_frontpage_title'] : $frontend->title( '' );
 		}
 		else {
-			$title = WPSEO_Frontend::get_instance()->title( '' );
+			$title = $frontend->title( '' );
 		}
 
 		/**
@@ -277,13 +277,13 @@ class WPSEO_OpenGraph {
 	/**
 	 * Output the locale, doing some conversions to make sure the proper Facebook locale is outputted.
 	 *
-	 * Last update/compare with FB list done on July 14, 2013 by JRF
-	 * Results: 1 new locale added, found 32 in the below list which are not in the FB list (not removed), 76 OK.
+	 * Last update/compare with FB list done on 2015-03-16 by Rarst
+	 *
 	 * @see  http://www.facebook.com/translations/FacebookLocales.xml for the list of supported locales
 	 *
 	 * @link https://developers.facebook.com/docs/reference/opengraph/object-type/article/
 	 *
-	 * @param bool $echo Whether to echo or return the locale
+	 * @param bool $echo Whether to echo or return the locale.
 	 *
 	 * @return string $locale
 	 */
@@ -295,7 +295,7 @@ class WPSEO_OpenGraph {
 		 */
 		$locale = apply_filters( 'wpseo_locale', get_locale() );
 
-		// catch some weird locales served out by WP that are not easily doubled up.
+		// Catch some weird locales served out by WP that are not easily doubled up.
 		$fix_locales = array(
 			'ca' => 'ca_ES',
 			'en' => 'en_US',
@@ -312,24 +312,106 @@ class WPSEO_OpenGraph {
 			$locale = $fix_locales[ $locale ];
 		}
 
-		// convert locales like "es" to "es_ES", in case that works for the given locale (sometimes it does)
+		// Convert locales like "es" to "es_ES", in case that works for the given locale (sometimes it does).
 		if ( strlen( $locale ) == 2 ) {
 			$locale = strtolower( $locale ) . '_' . strtoupper( $locale );
 		}
 
-		// These are the locales FB supports
+		// These are the locales FB supports.
 		$fb_valid_fb_locales = array(
-			'ca_ES', 'cs_CZ', 'cy_GB', 'da_DK', 'de_DE', 'eu_ES', 'en_PI', 'en_UD', 'ck_US', 'en_US', 'es_LA', 'es_CL', 'es_CO', 'es_ES', 'es_MX',
-			'es_VE', 'fb_FI', 'fi_FI', 'fr_FR', 'gl_ES', 'hu_HU', 'it_IT', 'ja_JP', 'ko_KR', 'nb_NO', 'nn_NO', 'nl_NL', 'pl_PL', 'pt_BR', 'pt_PT',
-			'ro_RO', 'ru_RU', 'sk_SK', 'sl_SI', 'sv_SE', 'th_TH', 'tr_TR', 'ku_TR', 'zh_CN', 'zh_HK', 'zh_TW', 'fb_LT', 'af_ZA', 'sq_AL', 'hy_AM',
-			'az_AZ', 'be_BY', 'bn_IN', 'bs_BA', 'bg_BG', 'hr_HR', 'nl_BE', 'en_GB', 'eo_EO', 'et_EE', 'fo_FO', 'fr_CA', 'ka_GE', 'el_GR', 'gu_IN',
-			'hi_IN', 'is_IS', 'id_ID', 'ga_IE', 'jv_ID', 'kn_IN', 'kk_KZ', 'la_VA', 'lv_LV', 'li_NL', 'lt_LT', 'mk_MK', 'mg_MG', 'ms_MY', 'mt_MT',
-			'mr_IN', 'mn_MN', 'ne_NP', 'pa_IN', 'rm_CH', 'sa_IN', 'sr_RS', 'so_SO', 'sw_KE', 'tl_PH', 'ta_IN', 'tt_RU', 'te_IN', 'ml_IN', 'uk_UA',
-			'uz_UZ', 'vi_VN', 'xh_ZA', 'zu_ZA', 'km_KH', 'tg_TJ', 'ar_AR', 'he_IL', 'ur_PK', 'fa_IR', 'sy_SY', 'yi_DE', 'gn_PY', 'qu_PE', 'ay_BO',
-			'se_NO', 'ps_AF', 'tl_ST', 'fy_NL',
+			'af_ZA', // Afrikaans.
+			'ar_AR', // Arabic.
+			'az_AZ', // Azerbaijani.
+			'be_BY', // Belarusian.
+			'bg_BG', // Bulgarian.
+			'bn_IN', // Bengali.
+			'bs_BA', // Bosnian.
+			'ca_ES', // Catalan.
+			'cs_CZ', // Czech.
+			'cx_PH', // Cebuano.
+			'cy_GB', // Welsh.
+			'da_DK', // Danish.
+			'de_DE', // German.
+			'el_GR', // Greek.
+			'en_GB', // English (UK).
+			'en_PI', // English (Pirate).
+			'en_UD', // English (Upside Down).
+			'en_US', // English (US).
+			'eo_EO', // Esperanto.
+			'es_ES', // Spanish (Spain).
+			'es_LA', // Spanish.
+			'et_EE', // Estonian.
+			'eu_ES', // Basque.
+			'fa_IR', // Persian.
+			'fb_LT', // Leet Speak.
+			'fi_FI', // Finnish.
+			'fo_FO', // Faroese.
+			'fr_CA', // French (Canada).
+			'fr_FR', // French (France).
+			'fy_NL', // Frisian.
+			'ga_IE', // Irish.
+			'gl_ES', // Galician.
+			'gn_PY', // Guarani.
+			'gu_IN', // Gujarati.
+			'he_IL', // Hebrew.
+			'hi_IN', // Hindi.
+			'hr_HR', // Croatian.
+			'hu_HU', // Hungarian.
+			'hy_AM', // Armenian.
+			'id_ID', // Indonesian.
+			'is_IS', // Icelandic.
+			'it_IT', // Italian.
+			'ja_JP', // Japanese.
+			'ja_KS', // Japanese (Kansai).
+			'jv_ID', // Javanese.
+			'ka_GE', // Georgian.
+			'kk_KZ', // Kazakh.
+			'km_KH', // Khmer.
+			'kn_IN', // Kannada.
+			'ko_KR', // Korean.
+			'ku_TR', // Kurdish.
+			'la_VA', // Latin.
+			'lt_LT', // Lithuanian.
+			'lv_LV', // Latvian.
+			'mk_MK', // Macedonian.
+			'ml_IN', // Malayalam.
+			'mn_MN', // Mongolian.
+			'mr_IN', // Marathi.
+			'ms_MY', // Malay.
+			'nb_NO', // Norwegian (bokmal).
+			'ne_NP', // Nepali.
+			'nl_NL', // Dutch.
+			'nn_NO', // Norwegian (nynorsk).
+			'pa_IN', // Punjabi.
+			'pl_PL', // Polish.
+			'ps_AF', // Pashto.
+			'pt_BR', // Portuguese (Brazil).
+			'pt_PT', // Portuguese (Portugal).
+			'ro_RO', // Romanian.
+			'ru_RU', // Russian.
+			'si_LK', // Sinhala.
+			'sk_SK', // Slovak.
+			'sl_SI', // Slovenian.
+			'sq_AL', // Albanian.
+			'sr_RS', // Serbian.
+			'sv_SE', // Swedish.
+			'sw_KE', // Swahili.
+			'ta_IN', // Tamil.
+			'te_IN', // Telugu.
+			'tg_TJ', // Tajik.
+			'th_TH', // Thai.
+			'tl_PH', // Filipino.
+			'tr_TR', // Turkish.
+			'uk_UA', // Ukrainian.
+			'ur_PK', // Urdu.
+			'uz_UZ', // Uzbek.
+			'vi_VN', // Vietnamese.
+			'zh_CN', // Simplified Chinese (China).
+			'zh_HK', // Traditional Chinese (Hong Kong).
+			'zh_TW', // Traditional Chinese (Taiwan).
 		);
 
-		// check to see if the locale is a valid FB one, if not, use en_US as a fallback
+		// Check to see if the locale is a valid FB one, if not, use en_US as a fallback.
 		if ( ! in_array( $locale, $fb_valid_fb_locales ) ) {
 			$locale = strtolower( substr( $locale, 0, 2 ) ) . '_' . strtoupper( substr( $locale, 0, 2 ) );
 			if ( ! in_array( $locale, $fb_valid_fb_locales ) ) {
@@ -347,7 +429,7 @@ class WPSEO_OpenGraph {
 	/**
 	 * Output the OpenGraph type.
 	 *
-	 * @param boolean $echo Whether to echo or return the type
+	 * @param boolean $echo Whether to echo or return the type.
 	 *
 	 * @link https://developers.facebook.com/docs/reference/opengraph/object-type/object/
 	 *
@@ -368,7 +450,7 @@ class WPSEO_OpenGraph {
 			}
 		}
 		else {
-			// We use "object" for archives etc. as article doesn't apply there
+			// We use "object" for archives etc. as article doesn't apply there.
 			$type = 'object';
 		}
 
@@ -392,130 +474,63 @@ class WPSEO_OpenGraph {
 	}
 
 	/**
-	 * Display an OpenGraph image tag
+	 * Create new WPSEO_OpenGraph_Image class and get the images to set the og:image
 	 *
-	 * @param string $img Source URL to the image
-	 *
-	 * @return bool
+	 * @param mixed $image
 	 */
-	public function image_output( $img ) {
-		/**
-		 * Filter: 'wpseo_opengraph_image' - Allow changing the OpenGraph image
-		 *
-		 * @api string $img Image URL string
-		 */
-		$img = trim( apply_filters( 'wpseo_opengraph_image', $img ) );
+	public function image( $image = false ) {
+		$opengraph_images = new WPSEO_OpenGraph_Image( $this->options, $image );
 
-		if ( empty( $img ) ) {
-			return false;
+		foreach ( $opengraph_images->get_images() as $img ) {
+			$this->og_tag( 'og:image', esc_url( $img ) );
 		}
-
-		if ( WPSEO_Utils::is_url_relative( $img ) === true ) {
-			if ( $img[0] != '/' ) {
-				return false;
-			}
-
-			// If it's a relative URL, it's relative to the domain, not necessarily to the WordPress install, we
-			// want to preserve domain name and URL scheme (http / https) though.
-			$parsed_url = parse_url( home_url() );
-			$img        = $parsed_url['scheme'] . '://' . $parsed_url['host'] . $img;
-		}
-
-		if ( in_array( $img, $this->shown_images ) ) {
-			return false;
-		}
-
-		array_push( $this->shown_images, $img );
-
-		$this->og_tag( 'og:image', esc_url( $img ) );
-
-		return true;
 	}
 
 	/**
-	 * Output the OpenGraph image elements for all the images within the current post/page.
+	 * Fallback method for plugins using image_output
 	 *
-	 * @return void
+	 * @param string $image
 	 */
-	public function image() {
-
-		global $post;
-
-		if ( is_front_page() ) {
-			if ( $this->options['og_frontpage_image'] !== '' ) {
-				$this->image_output( $this->options['og_frontpage_image'] );
-			}
-		}
-
-		if ( is_singular() ) {
-			$ogimg = WPSEO_Meta::get_value( 'opengraph-image' );
-			if ( $ogimg !== '' ) {
-				$this->image_output( $ogimg );
-
-				return;
-			}
-
-			if ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post->ID ) ) {
-				/**
-				 * Filter: 'wpseo_opengraph_image_size' - Allow changing the image size used for OpenGraph sharing
-				 *
-				 * @api string $unsigned Size string
-				 */
-				$thumb = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), apply_filters( 'wpseo_opengraph_image_size', 'original' ) );
-				$this->image_output( $thumb[0] );
-
-				return;
-			}
-
-			/**
-			 * Filter: 'wpseo_pre_analysis_post_content' - Allow filtering the content before analysis
-			 *
-			 * @api string $post_content The Post content string
-			 *
-			 * @param object $post The post object.
-			 */
-			$content = apply_filters( 'wpseo_pre_analysis_post_content', $post->post_content, $post );
-
-			if ( preg_match_all( '`<img [^>]+>`', $content, $matches ) ) {
-				foreach ( $matches[0] as $img ) {
-					if ( preg_match( '`src=(["\'])(.*?)\1`', $img, $match ) ) {
-						$this->image_output( $match[2] );
-					}
-				}
-			}
-		}
-
-		if ( count( $this->shown_images ) == 0 && $this->options['og_default_image'] !== '' ) {
-			$this->image_output( $this->options['og_default_image'] );
-		}
+	public function image_output( $image ) {
+		$this->image( $image );
 	}
 
 	/**
 	 * Output the OpenGraph description, specific OG description first, if not, grab the meta description.
 	 *
-	 * @param bool $echo Whether to echo or return the description
+	 * @param bool $echo Whether to echo or return the description.
 	 *
 	 * @return string $ogdesc
 	 */
 	public function description( $echo = true ) {
-		$ogdesc = '';
+		$ogdesc   = '';
+		$frontend = WPSEO_Frontend::get_instance();
 
 		if ( is_front_page() ) {
-			$ogdesc = ( $this->options['og_frontpage_desc'] !== '' ) ? $this->options['og_frontpage_desc'] : WPSEO_Frontend::get_instance()->metadesc( false );
+			if ( isset( $this->options['og_frontpage_desc'] ) && $this->options['og_frontpage_desc'] !== '' ) {
+				$ogdesc = wpseo_replace_vars( $this->options['og_frontpage_desc'], null );
+			}
+			else {
+				$ogdesc = $frontend->metadesc( false );
+			}
 		}
 
-		if ( is_singular() ) {
-			$ogdesc = WPSEO_Meta::get_value( 'opengraph-description' );
+		$is_posts_page = $frontend->is_posts_page();
 
-			// Replace WP SEO Variables
-			$ogdesc = wpseo_replace_vars( $ogdesc, get_post() );
+		if ( is_singular() || $is_posts_page ) {
+			$post_id = ( $is_posts_page ) ? get_option( 'page_for_posts' ) : get_the_ID();
+			$post    = get_post( $post_id );
+			$ogdesc  = WPSEO_Meta::get_value( 'opengraph-description', $post_id );
 
-			// Use metadesc if $ogdesc is empty
+			// Replace Yoast SEO Variables.
+			$ogdesc = wpseo_replace_vars( $ogdesc, $post );
+
+			// Use metadesc if $ogdesc is empty.
 			if ( $ogdesc === '' ) {
-				$ogdesc = WPSEO_Frontend::get_instance()->metadesc( false );
+				$ogdesc = $frontend->metadesc( false );
 			}
 
-			// og:description is still blank so grab it from get_the_excerpt()
+			// Tag og:description is still blank so grab it from get_the_excerpt().
 			if ( ! is_string( $ogdesc ) || ( is_string( $ogdesc ) && $ogdesc === '' ) ) {
 				$ogdesc = str_replace( '[&hellip;]', '&hellip;', strip_tags( get_the_excerpt() ) );
 			}
@@ -523,20 +538,19 @@ class WPSEO_OpenGraph {
 
 		if ( is_category() || is_tag() || is_tax() ) {
 
-			$ogdesc = WPSEO_Frontend::get_instance()->metadesc( false );
+			$ogdesc = $frontend->metadesc( false );
 
 			if ( '' == $ogdesc ) {
 				$ogdesc = trim( strip_tags( term_description() ) );
 			}
 
 			if ( '' == $ogdesc ) {
-				global $wp_query;
-				$term   = $wp_query->get_queried_object();
+				$term   = $GLOBALS['wp_query']->get_queried_object();
 				$ogdesc = WPSEO_Taxonomy_Meta::get_term_meta( $term, $term->taxonomy, 'desc' );
 			}
 		}
 
-		// Strip shortcodes if any
+		// Strip shortcodes if any.
 		$ogdesc = strip_shortcodes( $ogdesc );
 
 		/**
@@ -584,12 +598,9 @@ class WPSEO_OpenGraph {
 		$tags = get_the_tags();
 		if ( ! is_wp_error( $tags ) && ( is_array( $tags ) && $tags !== array() ) ) {
 
-			$tags_out = '';
 			foreach ( $tags as $tag ) {
-				$tags_out .= $tag->name . ',';
+				$this->og_tag( 'article:tag', $tag->name );
 			}
-			$tags_out = rtrim( $tags_out, ',' );
-			$this->og_tag( 'article:tag', $tags_out );
 
 			return true;
 		}
@@ -656,3 +667,212 @@ class WPSEO_OpenGraph {
 	}
 
 } /* End of class */
+
+/**
+ * Class WPSEO_OpenGraph_Image
+ */
+class WPSEO_OpenGraph_Image {
+
+	/**
+	 * @var array $options Holds options passed to the constructor
+	 */
+	private $options;
+
+	/**
+	 * @var array $images Holds the images that have been put out as OG image.
+	 */
+	private $images = array();
+
+	/**
+	 * Constructor
+	 *
+	 * @param array      $options
+	 * @param bool|mixed $image
+	 */
+	public function __construct( $options, $image = false ) {
+		$this->options = $options;
+		$this->set_images();
+
+		if ( ! empty( $image ) ) {
+			$this->add_image( $image );
+		}
+	}
+
+	/**
+	 * Return the images array
+	 *
+	 * @return array
+	 */
+	public function get_images() {
+		return $this->images;
+	}
+
+	/**
+	 * Check if page is front page or singular and call the corresponding functions. If not, call get_default_image.
+	 */
+	private function set_images() {
+		if ( is_front_page() ) {
+			$this->get_front_page_image();
+		}
+
+		if ( is_singular() ) {
+			$this->get_singular_image();
+		}
+
+		$this->get_default_image();
+	}
+
+	/**
+	 * If the frontpage image exists, call add_image
+	 */
+	private function get_front_page_image() {
+		if ( $this->options['og_frontpage_image'] !== '' ) {
+			$this->add_image( $this->options['og_frontpage_image'] );
+		}
+	}
+
+	/**
+	 * Get the images of the singular post.
+	 */
+	private function get_singular_image() {
+		global $post;
+
+		if ( $this->get_opengraph_image() ) {
+			return;
+		}
+
+		if ( $this->get_featured_image( $post->ID ) ) {
+			return;
+		}
+
+		$this->get_content_images( $post );
+	}
+
+	/**
+	 * Get default image and call add_image
+	 */
+	private function get_default_image() {
+		if ( count( $this->images ) == 0 && isset( $this->options['og_default_image'] ) && $this->options['og_default_image'] !== '' ) {
+			$this->add_image( $this->options['og_default_image'] );
+		}
+	}
+
+	/**
+	 * If opengraph-image is set, call add_image and return true
+	 *
+	 * @return bool
+	 */
+	private function get_opengraph_image() {
+		$ogimg = WPSEO_Meta::get_value( 'opengraph-image' );
+		if ( $ogimg !== '' ) {
+			$this->add_image( $ogimg );
+
+			return true;
+		}
+	}
+
+	/**
+	 * If there is a featured image, check image size. If image size is correct, call add_image and return true
+	 *
+	 * @param int $post_id The post ID.
+	 *
+	 * @return bool
+	 */
+	private function get_featured_image( $post_id ) {
+		if ( function_exists( 'has_post_thumbnail' ) && has_post_thumbnail( $post_id ) ) {
+			/**
+			 * Filter: 'wpseo_opengraph_image_size' - Allow changing the image size used for OpenGraph sharing
+			 *
+			 * @api string $unsigned Size string
+			 */
+			$thumb = wp_get_attachment_image_src( get_post_thumbnail_id( $post_id ), apply_filters( 'wpseo_opengraph_image_size', 'original' ) );
+
+			if ( $this->check_featured_image_size( $thumb ) ) {
+				return $this->add_image( $thumb[0] );
+			}
+		}
+	}
+
+	/**
+	 * Filter: 'wpseo_pre_analysis_post_content' - Allow filtering the content before analysis
+	 *
+	 * @api string $post_content The Post content string
+	 *
+	 * @param object $post - The post object.
+	 */
+	private function get_content_images( $post ) {
+		$content = apply_filters( 'wpseo_pre_analysis_post_content', $post->post_content, $post );
+
+		if ( preg_match_all( '`<img [^>]+>`', $content, $matches ) ) {
+			foreach ( $matches[0] as $img ) {
+				if ( preg_match( '`src=(["\'])(.*?)\1`', $img, $match ) ) {
+					$this->add_image( $match[2] );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check size of featured image. If image is too small, return false, else return true
+	 *
+	 * @param array $img_data wp_get_attachment_image_src: url, width, height, icon.
+	 *
+	 * @return bool
+	 */
+	private function check_featured_image_size( $img_data ) {
+		// Get the width and height of the image.
+		if ( $img_data[1] < 200 || $img_data[2] < 200 ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Display an OpenGraph image tag
+	 *
+	 * @param string $img - Source URL to the image.
+	 *
+	 * @return bool
+	 */
+	private function add_image( $img ) {
+		// Filter: 'wpseo_opengraph_image' - Allow changing the OpenGraph image.
+		$img = trim( apply_filters( 'wpseo_opengraph_image', $img ) );
+
+		if ( empty( $img ) ) {
+			return false;
+		}
+
+		if ( WPSEO_Utils::is_url_relative( $img ) === true ) {
+			$img = $this->get_relative_path( $img );
+		}
+
+		if ( in_array( $img, $this->images ) ) {
+			return false;
+		}
+		array_push( $this->images, $img );
+
+		return true;
+	}
+
+	/**
+	 * Get the relative path of the image
+	 *
+	 * @param array $img
+	 *
+	 * @return bool|string
+	 */
+	private function get_relative_path( $img ) {
+		if ( $img[0] != '/' ) {
+			return false;
+		}
+
+		// If it's a relative URL, it's relative to the domain, not necessarily to the WordPress install, we
+		// want to preserve domain name and URL scheme (http / https) though.
+		$parsed_url = parse_url( home_url() );
+		$img        = $parsed_url['scheme'] . '://' . $parsed_url['host'] . $img;
+
+		return $img;
+	}
+
+}

@@ -1,7 +1,6 @@
 <?php
 /**
- * @package    WPSEO
- * @subpackage Internals
+ * @package WPSEO\Internals
  * @since      1.8.0
  */
 
@@ -16,6 +15,13 @@ class WPSEO_Utils {
 	 * @static
 	 */
 	public static $has_filters;
+
+	/**
+	 * Holds the options that, when updated, should cause the transient cache to clear
+	 *
+	 * @var array
+	 */
+	private static $cache_clear = array();
 
 	/**
 	 * Check whether the current user is allowed to access the configuration.
@@ -149,7 +155,7 @@ class WPSEO_Utils {
 	 *
 	 * @static
 	 *
-	 * @param string $text Input string that might contain shortcodes
+	 * @param string $text Input string that might contain shortcodes.
 	 *
 	 * @return string $text string without shortcodes
 	 */
@@ -163,7 +169,7 @@ class WPSEO_Utils {
 	 *
 	 * @static
 	 *
-	 * @param mixed $value Value to trim or array of values to trim
+	 * @param mixed $value Value to trim or array of values to trim.
 	 *
 	 * @return mixed Trimmed value or array of trimmed values
 	 */
@@ -216,6 +222,7 @@ class WPSEO_Utils {
 			default:
 				$score = __( 'Bad', 'wordpress-seo' );
 				$css   = 'bad';
+				break;
 		}
 
 		if ( $css_value ) {
@@ -228,6 +235,7 @@ class WPSEO_Utils {
 
 	/**
 	 * Emulate the WP native sanitize_text_field function in a %%variable%% safe way
+	 *
 	 * @see https://core.trac.wordpress.org/browser/trunk/src/wp-includes/formatting.php for the original
 	 *
 	 * Sanitize a string from user input or from the db
@@ -261,6 +269,7 @@ class WPSEO_Utils {
 			$filtered = str_replace( $match[1], '', $filtered );
 			$found    = true;
 		}
+		unset( $match );
 
 		if ( $found ) {
 			// Strip out the whitespace that may now exist after removing the octets.
@@ -323,7 +332,7 @@ class WPSEO_Utils {
 	 *
 	 * @static
 	 *
-	 * @param mixed $value Value to cast
+	 * @param mixed $value Value to cast.
 	 *
 	 * @return bool
 	 */
@@ -340,7 +349,7 @@ class WPSEO_Utils {
 			'YES',
 			'on',
 			'On',
-			'On',
+			'ON',
 
 		);
 		$false = array(
@@ -379,6 +388,7 @@ class WPSEO_Utils {
 				return false;
 			}
 		}
+
 		return false;
 	}
 
@@ -409,7 +419,7 @@ class WPSEO_Utils {
 	 *
 	 * @static
 	 *
-	 * @param mixed $value Value to cast
+	 * @param mixed $value Value to cast.
 	 *
 	 * @return int|bool
 	 */
@@ -440,35 +450,8 @@ class WPSEO_Utils {
 				return false;
 			}
 		}
+
 		return false;
-	}
-
-	/**
-	 * (Un-)schedule the yoast tracking cronjob if the tracking option has changed
-	 *
-	 * @todo     - [JRF => Yoast] check if this has any impact on other Yoast plugins which may
-	 * use the same tracking schedule hook. If so, maybe get any other yoast plugin options,
-	 * check for the tracking status and unschedule based on the combined status.
-	 *
-	 * @static
-	 *
-	 * @param mixed $disregard        Not needed - passed by add/update_option action call
-	 *                                 Option name if option was added, old value if option was updated
-	 * @param array $value            The (new/current) value of the wpseo option
-	 * @param bool  $force_unschedule Whether to force an unschedule (i.e. on deactivate)
-	 *
-	 * @return void
-	 */
-	public static function schedule_yoast_tracking( $disregard, $value, $force_unschedule = false ) {
-		$current_schedule = wp_next_scheduled( 'yoast_tracking' );
-
-		if ( $force_unschedule !== true && ( $value['yoast_tracking'] === true && $current_schedule === false ) ) {
-			// The tracking checks daily, but only sends new data every 7 days.
-			wp_schedule_event( time(), 'daily', 'yoast_tracking' );
-		}
-		elseif ( $force_unschedule === true || ( $value['yoast_tracking'] === false && $current_schedule !== false ) ) {
-			wp_clear_scheduled_hook( 'yoast_tracking' );
-		}
 	}
 
 	/**
@@ -509,12 +492,54 @@ class WPSEO_Utils {
 	}
 
 	/**
+	 * Adds a hook that when given option is updated, the XML sitemap transient cache is cleared
+	 *
+	 * @param string $option
+	 * @param string $type
+	 */
+	public static function register_cache_clear_option( $option, $type = '' ) {
+		self::$cache_clear[ $option ] = $type;
+		add_action( 'update_option', array( 'WPSEO_Utils', 'clear_transient_cache' ) );
+	}
+
+	/**
+	 * Clears the transient cache when a given option is updated, if that option has been registered before
+	 *
+	 * @param string $option The option that's being updated.
+	 */
+	public static function clear_transient_cache( $option ) {
+		if ( isset( self::$cache_clear[ $option ] ) ) {
+			if ( '' !== self::$cache_clear[ $option ] ) {
+				wpseo_invalidate_sitemap_cache( self::$cache_clear[ $option ] );
+			}
+			else {
+				self::clear_sitemap_cache();
+			}
+		}
+	}
+
+	/**
 	 * Clear entire XML sitemap cache
 	 *
 	 * @param array $types
 	 */
 	public static function clear_sitemap_cache( $types = array() ) {
 		global $wpdb;
+
+		if ( wp_using_ext_object_cache() ) {
+			return;
+		}
+
+		if ( ! apply_filters( 'wpseo_enable_xml_sitemap_transient_caching', true ) ) {
+			return;
+		}
+
+		// Not sure about efficiency, but that's what code elsewhere does R.
+		$options = WPSEO_Options::get_all();
+
+		if ( true !== $options['enablexmlsitemap'] ) {
+			return;
+		}
 
 		$query = "DELETE FROM $wpdb->options WHERE";
 
@@ -526,13 +551,13 @@ class WPSEO_Utils {
 					$query .= ' OR ';
 				}
 
-				$query .= " option_name LIKE '_transient_timeout_wpseo_sitemap_cache_" . $sitemap_type . "_%'";
+				$query .= " option_name LIKE '_transient_wpseo_sitemap_cache_" . $sitemap_type . "_%' OR option_name LIKE '_transient_timeout_wpseo_sitemap_cache_" . $sitemap_type . "_%'";
 
 				$first = false;
 			}
 		}
 		else {
-			$query .= " option_name LIKE '_transient_timeout_wpseo_sitemap_%'";
+			$query .= " option_name LIKE '_transient_wpseo_sitemap_%' OR option_name LIKE '_transient_timeout_wpseo_sitemap_%'";
 		}
 
 		$wpdb->query( $query );
@@ -540,6 +565,7 @@ class WPSEO_Utils {
 
 	/**
 	 * Do simple reliable math calculations without the risk of wrong results
+	 *
 	 * @see   http://floating-point-gui.de/
 	 * @see   the big red warning on http://php.net/language.types.float.php
 	 *
@@ -549,17 +575,17 @@ class WPSEO_Utils {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param mixed  $number1   Scalar (string/int/float/bool)
+	 * @param mixed  $number1   Scalar (string/int/float/bool).
 	 * @param string $action    Calculation action to execute. Valid input:
 	 *                            '+' or 'add' or 'addition',
 	 *                            '-' or 'sub' or 'subtract',
 	 *                            '*' or 'mul' or 'multiply',
 	 *                            '/' or 'div' or 'divide',
 	 *                            '%' or 'mod' or 'modulus'
-	 *                            '=' or 'comp' or 'compare'
-	 * @param mixed  $number2   Scalar (string/int/float/bool)
+	 *                            '=' or 'comp' or 'compare'.
+	 * @param mixed  $number2   Scalar (string/int/float/bool).
 	 * @param bool   $round     Whether or not to round the result. Defaults to false.
-	 *                          Will be disregarded for a compare operation
+	 *                          Will be disregarded for a compare operation.
 	 * @param int    $decimals  Decimals for rounding operation. Defaults to 0.
 	 * @param int    $precision Calculation precision. Defaults to 10.
 	 *
@@ -611,10 +637,10 @@ class WPSEO_Utils {
 			case 'div':
 			case 'divide':
 				if ( $bc ) {
-					$result = bcdiv( $number1, $number2, $precision ); // string, or NULL if right_operand is 0
+					$result = bcdiv( $number1, $number2, $precision ); // String, or NULL if right_operand is 0.
 				}
 				elseif ( $number2 != 0 ) {
-					$result = ($number1 / $number2);
+					$result = ( $number1 / $number2 );
 				}
 
 				if ( ! isset( $result ) ) {
@@ -626,10 +652,10 @@ class WPSEO_Utils {
 			case 'mod':
 			case 'modulus':
 				if ( $bc ) {
-					$result = bcmod( $number1, $number2, $precision ); // string, or NULL if modulus is 0.
+					$result = bcmod( $number1, $number2, $precision ); // String, or NULL if modulus is 0.
 				}
 				elseif ( $number2 != 0 ) {
-					$result = ($number1 % $number2);
+					$result = ( $number1 % $number2 );
 				}
 
 				if ( ! isset( $result ) ) {
@@ -642,7 +668,7 @@ class WPSEO_Utils {
 			case 'compare':
 				$compare = true;
 				if ( $bc ) {
-					$result = bccomp( $number1, $number2, $precision ); // returns int 0, 1 or -1
+					$result = bccomp( $number1, $number2, $precision ); // Returns int 0, 1 or -1.
 				}
 				else {
 					$result = ( $number1 == $number2 ) ? 0 : ( ( $number1 > $number2 ) ? 1 : - 1 );
@@ -681,44 +707,7 @@ class WPSEO_Utils {
 	 * @return mixed
 	 */
 	public static function filter_input( $type, $variable_name, $filter = FILTER_DEFAULT ) {
-		if ( function_exists( 'filter_input' ) ) {
-			return filter_input( $type, $variable_name, $filter );
-		}
-		else {
-			switch ( $type ) {
-				case INPUT_GET:
-					$type = $_GET;
-					break;
-				case INPUT_POST:
-					$type = $_POST;
-					break;
-				case INPUT_SERVER:
-					$type = $_SERVER;
-					break;
-				default:
-					return false;
-					break;
-			}
-
-			if ( isset( $type[ $variable_name ] ) ) {
-				$out = $type[ $variable_name ];
-			}
-			else {
-				return false;
-			}
-
-			switch ( $filter ) {
-				case FILTER_VALIDATE_INT:
-					return self::emulate_filter_int( $out );
-					break;
-				case FILTER_VALIDATE_BOOLEAN:
-					return self::emulate_filter_bool( $out );
-					break;
-				default:
-					return (string) $out;
-					break;
-			}
-		}
+		return filter_input( $type, $variable_name, $filter );
 	}
 
 	/**
@@ -729,11 +718,82 @@ class WPSEO_Utils {
 	 * @return string
 	 */
 	public static function trim_nbsp_from_string( $string ) {
-		$find    = array( '&nbsp;', chr( 0xC2 ) . chr( 0xA0 ) );
-		$string  = str_replace( $find, ' ', $string );
-		$string  = trim( $string );
+		$find   = array( '&nbsp;', chr( 0xC2 ) . chr( 0xA0 ) );
+		$string = str_replace( $find, ' ', $string );
+		$string = trim( $string );
 
 		return $string;
+	}
+
+	/**
+	 * Check if a string is a valid datetime
+	 *
+	 * @param string $datetime
+	 *
+	 * @return bool
+	 */
+	public static function is_valid_datetime( $datetime ) {
+		if ( substr( $datetime, 0, 1 ) != '-' ) {
+			try {
+				// Use the DateTime class ( PHP 5.2 > ) to check if the string is a valid datetime.
+				if ( new DateTime( $datetime ) !== false ) {
+					return true;
+				}
+			}
+			catch ( Exception $exc ) {
+				return false;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Format the URL to be sure it is okay for using as a redirect url.
+	 *
+	 * This method will parse the URL and combine them in one string.
+	 *
+	 * @param string $url
+	 *
+	 * @return mixed
+	 */
+	public static function format_url( $url ) {
+		$parsed_url = parse_url( $url );
+
+		$formatted_url = '';
+		if ( ! empty( $parsed_url['path'] ) ) {
+			$formatted_url = $parsed_url['path'];
+		}
+
+		// Prepend a slash if first char != slash.
+		if ( stripos( $formatted_url, '/' ) !== 0 ) {
+			$formatted_url = '/' . $formatted_url;
+		}
+
+		// Append 'query' string if it exists.
+		if ( isset( $parsed_url['query'] ) && '' != $parsed_url['query'] ) {
+			$formatted_url .= '?' . $parsed_url['query'];
+		}
+
+		return apply_filters( 'wpseo_format_admin_url', $formatted_url );
+	}
+
+
+	/**
+	 * Get plugin name from file
+	 *
+	 * @param string $plugin
+	 *
+	 * @return bool
+	 */
+	public static function get_plugin_name( $plugin ) {
+		$plugin_details = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin );
+
+		if ( $plugin_details['Name'] != '' ) {
+			return $plugin_details['Name'];
+		}
+
+		return false;
 	}
 
 } /* End of class WPSEO_Utils */

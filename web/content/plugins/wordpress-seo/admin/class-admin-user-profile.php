@@ -1,7 +1,6 @@
 <?php
 /**
- * @package    WPSEO
- * @subpackage Admin
+ * @package WPSEO\Admin
  * @since      1.8.0
  */
 
@@ -27,33 +26,27 @@ class WPSEO_Admin_User_Profile {
 	 * @return mixed
 	 */
 	private function filter_input_post( $var_name ) {
-		$val = WPSEO_Utils::filter_input( INPUT_POST, $var_name );
+		$val = filter_input( INPUT_POST, $var_name );
 		if ( $val ) {
-			return WPSEO_Option::sanitize_text_field( $val );
+			return WPSEO_Utils::sanitize_text_field( $val );
 		}
-		else {
-			return '';
-		}
+		return '';
 	}
 
 	/**
 	 * Updates the user metas that (might) have been set on the user profile page.
 	 *
-	 * @param    int $user_id of the updated user
+	 * @param    int $user_id of the updated user.
 	 */
 	public function process_user_option_update( $user_id ) {
+		update_user_meta( $user_id, '_yoast_wpseo_profile_updated', time() );
 
-		if ( current_user_can( 'edit_user', $user_id ) ) {
-			update_user_meta( $user_id, '_yoast_wpseo_profile_updated', time() );
-		}
+		check_admin_referer( 'wpseo_user_profile_update', 'wpseo_nonce' );
 
-		if ( $this->filter_input_post( 'wpseo_author_title' ) ) {
-			check_admin_referer( 'wpseo_user_profile_update', 'wpseo_nonce' );
-			update_user_meta( $user_id, 'wpseo_title', $this->filter_input_post( 'wpseo_author_title' ) );
-			update_user_meta( $user_id, 'wpseo_metadesc', $this->filter_input_post( 'wpseo_author_metadesc' ) );
-			update_user_meta( $user_id, 'wpseo_metakey', $this->filter_input_post( 'wpseo_author_metakey' ) );
-			update_user_meta( $user_id, 'wpseo_excludeauthorsitemap', $this->filter_input_post( 'wpseo_author_exclude' ) );
-		}
+		update_user_meta( $user_id, 'wpseo_title', $this->filter_input_post( 'wpseo_author_title' ) );
+		update_user_meta( $user_id, 'wpseo_metadesc', $this->filter_input_post( 'wpseo_author_metadesc' ) );
+		update_user_meta( $user_id, 'wpseo_metakey', $this->filter_input_post( 'wpseo_author_metakey' ) );
+		update_user_meta( $user_id, 'wpseo_excludeauthorsitemap', $this->filter_input_post( 'wpseo_author_exclude' ) );
 	}
 
 	/**
@@ -62,11 +55,6 @@ class WPSEO_Admin_User_Profile {
 	 * @param    object $user
 	 */
 	public function user_profile( $user ) {
-
-		if ( ! current_user_can( 'edit_users' ) ) {
-			return;
-		}
-
 		$options = WPSEO_Options::get_all();
 
 		wp_nonce_field( 'wpseo_user_profile_update', 'wpseo_nonce' );

@@ -1,13 +1,26 @@
 <?php
 /**
- * @package    WPSEO
- * @subpackage Admin
+ * @package WPSEO\Admin
  */
 
 if ( ! defined( 'WPSEO_VERSION' ) ) {
 	header( 'Status: 403 Forbidden' );
 	header( 'HTTP/1.1 403 Forbidden' );
 	exit();
+}
+
+/**
+ * @todo this whole thing should probably be a proper class.
+ */
+
+/**
+ * Convenience function to JSON encode and echo resuls and then die
+ *
+ * @param array $results
+ */
+function wpseo_ajax_json_echo_die( $results ) {
+	echo json_encode( $results );
+	die();
 }
 
 /**
@@ -20,7 +33,7 @@ function wpseo_set_option() {
 
 	check_ajax_referer( 'wpseo-setoption' );
 
-	$option = sanitize_text_field( $_POST['option'] );
+	$option = sanitize_text_field( filter_input( INPUT_POST, 'option' ) );
 	if ( $option !== 'page_comments' ) {
 		die( '-1' );
 	}
@@ -41,14 +54,50 @@ function wpseo_set_ignore() {
 
 	check_ajax_referer( 'wpseo-ignore' );
 
-	$options                            = get_option( 'wpseo' );
-	$ignore_key                         = sanitize_text_field( $_POST['option'] );
+	$ignore_key = sanitize_text_field( filter_input( INPUT_POST, 'option' ) );
+
+	$options                          = get_option( 'wpseo' );
 	$options[ 'ignore_' . $ignore_key ] = true;
 	update_option( 'wpseo', $options );
+
 	die( '1' );
 }
 
 add_action( 'wp_ajax_wpseo_set_ignore', 'wpseo_set_ignore' );
+
+/**
+ * Hides the after-update notification until the next update for a specific user.
+ */
+function wpseo_dismiss_about() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		die( '-1' );
+	}
+
+	check_ajax_referer( 'wpseo-dismiss-about' );
+
+	update_user_meta( get_current_user_id(), 'wpseo_seen_about_version' , WPSEO_VERSION );
+
+	die( '1' );
+}
+
+add_action( 'wp_ajax_wpseo_dismiss_about', 'wpseo_dismiss_about' );
+
+/**
+ * Hides the default tagline notice for a specific user.
+ */
+function wpseo_dismiss_tagline_notice() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		die( '-1' );
+	}
+
+	check_ajax_referer( 'wpseo-dismiss-tagline-notice' );
+
+	update_user_meta( get_current_user_id(), 'wpseo_seen_tagline_notice', 'seen' );
+
+	die( '1' );
+}
+
+add_action( 'wp_ajax_wpseo_dismiss_tagline_notice', 'wpseo_dismiss_tagline_notice' );
 
 /**
  * Function used to delete blocking files, dies on exit.
@@ -71,7 +120,7 @@ function wpseo_kill_blocking_files() {
 			}
 			else {
 				unset( $options['blocking_files'][ $k ] );
-				$files_removed++;
+				$files_removed ++;
 			}
 		}
 		if ( $files_removed > 0 ) {
@@ -85,41 +134,15 @@ function wpseo_kill_blocking_files() {
 add_action( 'wp_ajax_wpseo_kill_blocking_files', 'wpseo_kill_blocking_files' );
 
 /**
- * Retrieve the suggestions from the Google Suggest API and return them to be
- * used in the suggest box within the plugin. Dies on exit.
- */
-function wpseo_get_suggest() {
-	check_ajax_referer( 'wpseo-get-suggest' );
-
-	$term   = urlencode( $_GET['term'] );
-	$result = wp_remote_get( 'https://www.google.com/complete/search?output=toolbar&q=' . $term );
-
-	$return_arr = array();
-
-	if ( ! is_wp_error( $result ) ) {
-		preg_match_all( '`suggestion data="([^"]+)"/>`u', $result['body'], $matches );
-
-		if ( isset( $matches[1] ) && ( is_array( $matches[1] ) && $matches[1] !== array() ) ) {
-			foreach ( $matches[1] as $match ) {
-				$return_arr[] = html_entity_decode( $match, ENT_COMPAT, 'UTF-8' );
-			}
-		}
-	}
-	echo json_encode( $return_arr );
-	die();
-}
-
-add_action( 'wp_ajax_wpseo_get_suggest', 'wpseo_get_suggest' );
-
-/**
  * Used in the editor to replace vars for the snippet preview
  */
 function wpseo_ajax_replace_vars() {
+	global $post;
 	check_ajax_referer( 'wpseo-replace-vars' );
 
-	$post = get_post( $_POST['post_id'] );
+	$post = get_post( intval( filter_input( INPUT_POST, 'post_id' ) ) );
 	$omit = array( 'excerpt', 'excerpt_only', 'title' );
-	echo wpseo_replace_vars( stripslashes( $_POST['string'] ), $post, $omit );
+	echo wpseo_replace_vars( stripslashes( filter_input( INPUT_POST, 'string' ) ), $post, $omit );
 	die;
 }
 
@@ -129,35 +152,35 @@ add_action( 'wp_ajax_wpseo_replace_vars', 'wpseo_ajax_replace_vars' );
  * Save an individual SEO title from the Bulk Editor.
  */
 function wpseo_save_title() {
-	check_ajax_referer( 'wpseo-bulk-editor' );
-
-	$new_title      = $_POST['new_value'];
-	$id             = intval( $_POST['wpseo_post_id'] );
-	$original_title = $_POST['existing_value'];
-
-	$results = wpseo_upsert_new_title( $id, $new_title, $original_title );
-
-	echo json_encode( $results );
-	die();
+	wpseo_save_what( 'title' );
 }
 
 add_action( 'wp_ajax_wpseo_save_title', 'wpseo_save_title' );
 
 /**
- * Helper function for updating an existing seo title or create a new one
- * if it doesn't already exist.
- *
- * @param int    $post_id
- * @param string $new_title
- * @param string $original_title
- *
- * @return string
+ * Save an individual meta description from the Bulk Editor.
  */
-function wpseo_upsert_new_title( $post_id, $new_title, $original_title ) {
+function wpseo_save_description() {
+	wpseo_save_what( 'metadesc' );
+}
 
-	$meta_key   = WPSEO_Meta::$meta_prefix . 'title';
-	$return_key = 'title';
-	return wpseo_upsert_meta( $post_id, $new_title, $original_title, $meta_key, $return_key );
+add_action( 'wp_ajax_wpseo_save_metadesc', 'wpseo_save_description' );
+
+/**
+ * Save titles & descriptions
+ *
+ * @param string $what
+ */
+function wpseo_save_what( $what ) {
+	check_ajax_referer( 'wpseo-bulk-editor' );
+
+	$new      = filter_input( INPUT_POST, 'new_value' );
+	$post_id  = intval( filter_input( INPUT_POST, 'wpseo_post_id' ) );
+	$original = filter_input( INPUT_POST, 'existing_value' );
+
+	$results = wpseo_upsert_new( $what, $post_id, $new, $original );
+
+	wpseo_ajax_json_echo_die( $results );
 }
 
 /**
@@ -174,9 +197,9 @@ function wpseo_upsert_new_title( $post_id, $new_title, $original_title ) {
  */
 function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_key, $return_key ) {
 
-	$post_id                   = intval( $post_id );
-	$sanitized_new_meta_value  = wp_strip_all_tags( $new_meta_value );
-	$orig_meta_value           = wp_strip_all_tags( $orig_meta_value );
+	$post_id                  = intval( $post_id );
+	$sanitized_new_meta_value = wp_strip_all_tags( $new_meta_value );
+	$orig_meta_value          = wp_strip_all_tags( $orig_meta_value );
 
 	$upsert_results = array(
 		'status'                 => 'success',
@@ -239,76 +262,87 @@ function wpseo_upsert_meta( $post_id, $new_meta_value, $orig_meta_value, $meta_k
  * Save all titles sent from the Bulk Editor.
  */
 function wpseo_save_all_titles() {
-	check_ajax_referer( 'wpseo-bulk-editor' );
-
-	$new_titles      = $_POST['items'];
-	$original_titles = $_POST['existing_items'];
-
-	$results = array();
-
-	if ( is_array( $new_titles ) && $new_titles !== array() ) {
-		foreach ( $new_titles as $id => $new_title ) {
-			$original_title = $original_titles[ $id ];
-			$results[]      = wpseo_upsert_new_title( $id, $new_title, $original_title );
-		}
-	}
-	echo json_encode( $results );
-	die();
+	wpseo_save_all( 'title' );
 }
 
 add_action( 'wp_ajax_wpseo_save_all_titles', 'wpseo_save_all_titles' );
 
 /**
- * Save an individual meta description from the Bulk Editor.
- */
-function wpseo_save_description() {
-	check_ajax_referer( 'wpseo-bulk-editor' );
-
-	$new_metadesc      = $_POST['new_value'];
-	$id                = intval( $_POST['wpseo_post_id'] );
-	$original_metadesc = $_POST['existing_value'];
-
-	$results = wpseo_upsert_new_description( $id, $new_metadesc, $original_metadesc );
-
-	echo json_encode( $results );
-	die();
-}
-
-add_action( 'wp_ajax_wpseo_save_metadesc', 'wpseo_save_description' );
-
-/**
- * Helper function to create or update a post's meta description.
- *
- * @param int    $post_id
- * @param string $new_metadesc
- * @param string $original_metadesc
- */
-function wpseo_upsert_new_description( $post_id, $new_metadesc, $original_metadesc ) {
-
-	$meta_key   = WPSEO_Meta::$meta_prefix . 'metadesc';
-	$return_key = 'metadesc';
-	return wpseo_upsert_meta( $post_id, $new_metadesc, $original_metadesc, $meta_key, $return_key );
-}
-
-/**
  * Save all description sent from the Bulk Editor.
  */
 function wpseo_save_all_descriptions() {
-	check_ajax_referer( 'wpseo-bulk-editor' );
-
-	$new_metadescs      = $_POST['items'];
-	$original_metadescs = $_POST['existing_items'];
-
-	$results = array();
-
-	if ( is_array( $new_metadescs ) && $new_metadescs !== array() ) {
-		foreach ( $new_metadescs as $id => $new_metadesc ) {
-			$original_metadesc = $original_metadescs[ $id ];
-			$results[]         = wpseo_upsert_new_description( $id, $new_metadesc, $original_metadesc );
-		}
-	}
-	echo json_encode( $results );
-	die();
+	wpseo_save_all( 'metadesc' );
 }
 
 add_action( 'wp_ajax_wpseo_save_all_descriptions', 'wpseo_save_all_descriptions' );
+
+/**
+ * Utility function to save values
+ *
+ * @param string $what
+ */
+function wpseo_save_all( $what ) {
+	check_ajax_referer( 'wpseo-bulk-editor' );
+
+	// @todo the WPSEO Utils class can't filter arrays in POST yet.
+	$new_values      = $_POST['items'];
+	$original_values = $_POST['existing_items'];
+
+	$results = array();
+
+	if ( is_array( $new_values ) && $new_values !== array() ) {
+		foreach ( $new_values as $post_id => $new_value ) {
+			$original_value = $original_values[ $post_id ];
+			$results[]      = wpseo_upsert_new( $what, $post_id, $new_value, $original_value );
+		}
+	}
+	wpseo_ajax_json_echo_die( $results );
+}
+
+/**
+ * Insert a new value
+ *
+ * @param string $what
+ * @param int    $post_id
+ * @param string $new
+ * @param string $original
+ *
+ * @return string
+ */
+function wpseo_upsert_new( $what, $post_id, $new, $original ) {
+	$meta_key = WPSEO_Meta::$meta_prefix . $what;
+
+	return wpseo_upsert_meta( $post_id, $new, $original, $meta_key, $what );
+}
+
+/**
+ * Create an export and return the URL
+ */
+function wpseo_get_export() {
+
+	$include_taxonomy = ( filter_input( INPUT_POST, 'include_taxonomy' ) === 'true' );
+	$export           = new WPSEO_Export( $include_taxonomy );
+
+	wpseo_ajax_json_echo_die( $export->get_results() );
+}
+
+add_action( 'wp_ajax_wpseo_export', 'wpseo_get_export' );
+
+/**
+ * Handles the posting of a new FB admin.
+ */
+function wpseo_add_fb_admin() {
+	check_ajax_referer( 'wpseo_fb_admin_nonce' );
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		die( '-1' );
+	}
+
+	$facebook_social = new Yoast_Social_Facebook();
+
+	wp_die( $facebook_social->add_admin( filter_input( INPUT_POST, 'admin_name' ), filter_input( INPUT_POST, 'admin_id' ) ) );
+}
+
+add_action( 'wp_ajax_wpseo_add_fb_admin', 'wpseo_add_fb_admin' );
+
+new Yoast_Dashboard_Widget();
